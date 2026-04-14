@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MTG EDH Dynamic Color Counter v19</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini MTG EDH Counter</title>
     <style>
         html, body { 
-            margin: 0; padding: 0; height: 100vh; width: 100vw; 
-            overflow: hidden; background: #111; color: #fff; font-family: sans-serif; 
+            margin: 0; padding: 0; min-height: 100vh; width: 100vw; 
+            background: #111; color: #fff; font-family: sans-serif; 
         }
         .app-header {
             height: 4vh; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; background: #000;
@@ -37,54 +37,43 @@
         .partner-wrapper { display: flex; align-items: center; gap: 1px; font-size: 0.6rem; color: #888; white-space: nowrap; flex-shrink: 0; }
         .name-select { background: transparent; color: #ddd; border: none; font-size: 0.8rem; font-weight: bold; outline: none; flex-grow: 1; min-width: 0; text-overflow: ellipsis; }
 
+        /* ダイスエリアの修正：入力欄とボタンを配置 */
         .dice-wrapper { 
-            display: flex; align-items: center; gap: 2px; background: #111; border-radius: 4px; padding: 1px; 
-            flex-shrink: 0; width: 42%;
+            display: flex; align-items: center; gap: 1px; background: #111; border-radius: 4px; padding: 1px; 
+            flex-shrink: 0; width: 45%;
         }
-        .dice-input { width: 35%; background: transparent; border: none; color: #aaa; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #444; outline: none; }
-        .dice-display-unit { width: 65%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .dice-input { width: 30%; background: transparent; border: none; color: #aaa; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #444; outline: none; }
+        .dice-btn { background: #333; color: #fff; border: none; font-size: 0.5rem; padding: 2px; border-radius: 2px; cursor: pointer; }
+        .dice-display-unit { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .dice-format { font-size: 0.4rem; color: #555; line-height: 1; height: 6px; }
-        .dice-result { color: #ffeb3b; font-weight: bold; font-size: 0.8rem; text-align: center; min-width: 25px; line-height: 1.2; }
+        .dice-result { color: #ffeb3b; font-weight: bold; font-size: 0.8rem; text-align: center; min-width: 20px; line-height: 1.2; }
 
         .main-display-wrapper { height: 45%; display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
         .life-center-unit { display: flex; flex-direction: column; align-items: center; width: 68%; height: 100%; justify-content: space-around; }
-        
         .life-wrapper { width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; height: 55%; }
         .life { 
             font-size: 10vh; font-weight: bold; border: none; background: transparent; 
             width: 100%; text-align: center; outline: none; padding: 0; transition: color 0.3s;
         }
         .life.small-font { font-size: 7vh; }
-
         .life-btn-group { display: flex; justify-content: center; gap: 15px; width: 100%; height: 28%; }
-        .btn-life { 
-            flex: 1; max-width: 80px; height: 100%;
-            font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; 
-        }
+        .btn-life { flex: 1; max-width: 80px; height: 100%; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
         .btn-minus { background: #d32f2f; color: #fff; }
         .btn-plus { background: #388e3c; color: #fff; }
-
         .num-select { background: #333; color: #fff; border: 1px solid #444; font-size: 0.7rem; width: 90%; border-radius: 4px; height: 15%; }
         
         .sidebar-counters { display: flex; flex-direction: column; gap: 2px; width: 30%; height: 100%; justify-content: center; }
         .side-item { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 1px 2px; display: flex; align-items: center; justify-content: space-between; }
         .side-label { font-size: 0.4rem; white-space: nowrap; width: 22px; font-weight: bold; }
-        .side-val { font-weight: bold; font-size: 0.8rem; min-width: 12px; text-align: center; }
+        .side-val { font-weight: bold; font-size: 0.8rem; min-width: 12px; text-align: center; transition: color 0.3s; }
         .btn-side { width: 16px; height: 16px; background: #333; border: none; color: #fff; border-radius: 2px; cursor: pointer; font-size: 0.6rem; }
 
         .commander-area { height: 45%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; padding: 2px; }
-        .cmd-P1 { grid-area: 1 / 1 / 2 / 2; }
-        .cmd-P2 { grid-area: 1 / 2 / 2 / 3; }
-        .cmd-P4 { grid-area: 2 / 1 / 3 / 2; }
-        .cmd-P3 { grid-area: 2 / 2 / 3 / 3; }
-
         .cmd-box { background: #1a1a1a; padding: 2px; border-radius: 2px; font-size: 0.5rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid transparent; }
         .cmd-box.is-self { opacity: 0.4; border: 1px dashed #333; }
-        
         .cmd-header { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #333; padding-bottom: 1px; margin-bottom: 1px; }
         .cmd-order { color: #555; font-weight: bold; }
         .cmd-name-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; color: #aaa; font-size: 0.4rem; }
-        
         .cmd-body { display: flex; justify-content: space-around; flex-grow: 1; align-items: center; }
         .cmd-unit { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 48%; }
         .cmd-side-label { color: #444; font-size: 0.4rem; line-height: 1; }
@@ -97,7 +86,7 @@
 <body>
 
     <div class="app-header">
-        <span style="font-size:0.8rem; font-weight:bold; color:#777;">EDH DYNAMIC COUNTER</span>
+        <span style="font-size:0.8rem; font-weight:bold; color:#777;">Gemini MTG EDH Counter</span>
         <button class="reset-btn" onclick="resetGame()">リセット(ダイス以外)</button>
     </div>
     <div class="grid" id="main-grid"></div>
@@ -118,7 +107,7 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const rootRef = db.ref('mtg/edh-session-final-v19');
+        const rootRef = db.ref('mtg/edh-session-final-v20');
         const memberRef = db.ref('mtg/members');
 
         const playerSlots = ['P1', 'P2', 'P3', 'P4'];
@@ -137,7 +126,8 @@
                             <option value="">NAME</option>
                         </select>
                         <div class="dice-wrapper">
-                            <input type="text" id="dice-in-${slot}" class="dice-input" placeholder="1d20" onkeypress="handleDice(event, '${slot}')">
+                            <input type="text" id="dice-in-${slot}" class="dice-input" placeholder="1d20">
+                            <button class="dice-btn" onclick="triggerDice('${slot}')">振</button>
                             <div class="dice-display-unit">
                                 <div id="dice-fmt-${slot}" class="dice-format"></div>
                                 <div id="dice-res-${slot}" class="dice-result">--</div>
@@ -167,19 +157,16 @@
             grid.insertAdjacentHTML('beforeend', html);
         });
 
-        // 共通色計算関数
         function getDynamicColor(val, type) {
             if (type === 'life') {
                 if (val <= 0) return "#f44336";
-                // 40(緑) -> 0(赤) 
                 const ratio = Math.min(1, val / 40);
-                const hue = ratio * 120; // 0 to 120
+                const hue = ratio * 120;
                 return `hsl(${hue}, 100%, 60%)`;
             } else if (type === 'cmd') {
-                if (val >= 21) return "#ff00ff"; // 敗北ラインはマゼンタ
-                // 0(緑) -> 21(赤)
+                if (val >= 21) return "#ff00ff";
                 const ratio = Math.min(1, val / 21);
-                const hue = 120 - (ratio * 120); // 120 to 0
+                const hue = 120 - (ratio * 120);
                 return `hsl(${hue}, 100%, 60%)`;
             } else if (type === 'poison') {
                 if (val <= 0) return "#888";
@@ -197,18 +184,26 @@
             });
         };
 
-        window.handleDice = (e, slot) => {
-            if (e.key !== 'Enter') return;
-            const match = e.target.value.toLowerCase().match(/^(\d+)d(\d+)$/);
+        // ダイス実行用関数
+        window.triggerDice = (slot) => {
+            const input = document.getElementById(`dice-in-${slot}`);
+            const val = input.value.toLowerCase();
+            const match = val.match(/^(\d+)d(\d+)$/);
             if (!match) return;
-            directInput(`${slot}/diceFormat`, e.target.value);
+            
+            directInput(`${slot}/diceFormat`, val);
             let r = 0;
             const itv = setInterval(() => {
                 const tmp = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
                 directInput(`${slot}/diceResult`, tmp);
-                if (++r > 8) { clearInterval(itv); directInput(`${slot}/diceResult`, Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b)); }
+                if (++r > 8) { 
+                    clearInterval(itv); 
+                    const final = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
+                    directInput(`${slot}/diceResult`, final); 
+                }
             }, 80);
-            e.target.value = "";
+            input.value = "";
+            input.blur(); // キーボードを閉じる
         };
 
         memberRef.on('value', s => {
@@ -216,7 +211,7 @@
             playerSlots.forEach(slot => {
                 const sel = document.getElementById(`name-${slot}`);
                 const cur = sel.value;
-                sel.innerHTML = '<option value="">NAME</option>' + m.map(v => `<option value="${v}">${v}</option>`).join('');
+                sel.innerHTML = '<option value="">名前選択</option>' + m.map(v => `<option value="${v}">${v}</option>`).join('');
                 if(cur) sel.value = cur;
             });
         });
@@ -231,7 +226,6 @@
                 document.getElementById(`dice-fmt-${target}`).innerText = p.diceFormat || "";
                 document.getElementById(`dice-res-${target}`).innerText = p.diceResult || "--";
                 
-                // ライフ表示 & 色
                 const lifeIn = document.getElementById(`life-${target}`);
                 if (document.activeElement !== lifeIn) {
                     const lifeVal = p.life ?? 40;
@@ -244,8 +238,8 @@
                 const sideArea = document.getElementById(`side-${target}`);
                 const poi = p.poison ?? 0;
                 const rad = p.rad ?? 0;
-                let sideHtml = `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱1</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
-                if(!!p.isPartner) sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱2</span><button class="btn-side" onclick="changeValue('${target}/tax2',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax2??0}</span><button class="btn-side" onclick="changeValue('${target}/tax2',1)">+</button></div>`;
+                let sideHtml = `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
+                if(!!p.isPartner) sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax2',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax2??0}</span><button class="btn-side" onclick="changeValue('${target}/tax2',1)">+</button></div>`;
                 sideHtml += `<div class="side-item"><span class="side-label" style="color:#adff2f">毒</span><button class="btn-side" onclick="changeValue('${target}/poison',-1)">-</button><span class="side-val" style="color:${getDynamicColor(poi, 'poison')}">${poi}</span><button class="btn-side" onclick="changeValue('${target}/poison',1)">+</button></div><div class="side-item"><span class="side-label" style="color:#ffeb3b">RAD</span><button class="btn-side" onclick="changeValue('${target}/rad',-1)">-</button><span class="side-val" style="color:${rad>0?'#ffeb3b':'#888'}">${rad}</span><button class="btn-side" onclick="changeValue('${target}/rad',1)">+</button></div>`;
                 sideArea.innerHTML = sideHtml;
 
