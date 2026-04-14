@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG EDH Partner Support Counter</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: #fff; margin: 0; padding: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 950px; margin: auto; }
+        .player-box { background: #2a2a2a; padding: 15px; border-radius: 12px; border: 1px solid #444; position: relative; }
+        
+        .name-area { margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .name-select { background: transparent; color: #ddd; border: none; font-size: 1.2rem; font-weight: bold; width: 60%; text-align: center; cursor: pointer; appearance: none; }
+        .partner-label { font-size: 0.8rem; color: #aaa; cursor: pointer; }
+        .partner-check { cursor: pointer; }
+
+        .life { font-size: 3.5rem; font-weight: bold; color: #4CAF50; cursor: pointer; border: none; background: transparent; width: 100%; text-align: center; }
+        .life:focus { outline: none; background: #333; border-radius: 8px; }
+
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .btn-group { display: flex; gap: 5px; }
+        button { cursor: pointer; border-radius: 5px; border: none; font-weight: bold; }
+        .btn-life { width: 45px; height: 45px; font-size: 1.5rem; }
+        .plus { background: #4CAF50; color: white; }
+        .minus { background: #f44336; color: white; }
+        
+        select.num-select { padding: 6px; border-radius: 5px; background: #444; color: white; border: 1px solid #666; font-size: 0.9rem; width: 85%; }
+
+        .poison-area { background: #111; padding: 8px; border-radius: 8px; margin: 5px 0 10px 0; border: 1px solid #333; display: flex; justify-content: space-around; align-items: center; }
+        .poison-label { color: #888; font-size: 0.7rem; font-weight: bold; }
+        .poison-val { font-size: 1.6rem; font-weight: bold; transition: color 0.3s ease; }
+        .btn-poison { width: 35px; height: 35px; font-size: 1.2rem; background: #444; color: #fff; }
+
+        /* 統率者エリアの調整 */
+        .commander-area { display: grid; grid-template-columns: 1fr; gap: 6px; border-top: 1px solid #444; padding-top: 10px; }
+        .cmd-row { display: grid; gap: 5px; min-height: 60px; }
+        .cmd-box { background: #333; padding: 6px; border-radius: 5px; font-size: 0.7rem; display: flex; flex-direction: column; justify-content: center; }
+        .cmd-val { font-size: 1.2rem; font-weight: bold; display: block; color: #ff9800; margin: 2px 0; }
+        .cmd-val.danger { color: #f44336; text-decoration: underline; }
+        .btn-cmd { width: 30px; height: 30px; font-size: 1rem; }
+        .cmd-label { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h2 style="margin: 10px 0;">EDH Partner Support Counter</h2>
+    <div class="grid" id="main-grid"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQl03fhI7AQH2Ip2dkPOlCBGOHfxKXtEE",
+            authDomain: "test-63aa0.firebaseapp.com",
+            databaseURL: "https://test-63aa0-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "test-63aa0",
+            storageBucket: "test-63aa0.firebasestorage.app",
+            messagingSenderId: "1065998979270",
+            appId: "1:1065998979270:web:a5d3e96dbe9062a37ac7c7"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const rootRef = db.ref('mtg/edh-session-partner-v3');
+        const memberRef = db.ref('mtg/members');
+
+        const playerSlots = ['P1', 'P2', 'P3', 'P4'];
+        const grid = document.getElementById('main-grid');
+
+        function generateLifeOptions() {
+            let options = '<option value="">数値を指定...</option>';
+            for(let i=1; i<=79; i++) options += `<option value="${i}">${i}</option>`;
+            return options;
+        }
+
+        function getPoisonColor(val) {
+            if (val <= 0) return "#888";
+            if (val >= 10) return "#ff00ff";
+            const hue = Math.max(0, 120 - (val * 12));
+            return `hsl(${hue}, 100%, 60%)`;
+        }
+
+        playerSlots.forEach(slot => {
+            let html = `
+                <div class="player-box">
+                    <div class="name-area">
+                        <select id="name-${slot}" class="name-select" onchange="directInput('${slot}/name', this.value)">
+                            <option value="">名前を選択</option>
+                        </select>
+                        <label for="check-${slot}" class="partner-label">共闘</label>
+                        <input type="checkbox" id="check-${slot}" class="partner-check" onchange="directInput('${slot}/isPartner', this.checked)">
+                    </div>
+                    
+                    <div class="life-display-wrapper">
+                        <input type="number" id="life-${slot}" class="life" value="40" onchange="directInput('${slot}/life', this.value)">
+                    </div>
+
+                    <div class="controls">
+                        <div class="btn-group">
+                            <button class="minus btn-life" onclick="changeValue('${slot}/life', -1)">-1</button>
+                            <button class="plus btn-life" onclick="changeValue('${slot}/life', 1)">+1</button>
+                        </div>
+                        <select class="num-select" onchange="if(this.value !== '') { directInput('${slot}/life', this.value); this.value = ''; }">
+                            ${generateLifeOptions()}
+                        </select>
+                    </div>
+
+                    <div class="poison-area">
+                        <div class="poison-label">POISON</div>
+                        <button class="btn-poison" onclick="changeValue('${slot}/poison', -1)">-</button>
+                        <span id="poison-${slot}" class="poison-val">0</span>
+                        <button class="btn-poison" onclick="changeValue('${slot}/poison', 1)">+</button>
+                    </div>
+
+                    <div class="commander-area" id="cmd-area-${slot}"></div>
+                </div>`;
+            grid.insertAdjacentHTML('beforeend', html);
+        });
+
+        memberRef.on('value', snapshot => {
+            const members = snapshot.val() || [];
+            playerSlots.forEach(slot => {
+                const select = document.getElementById(`name-${slot}`);
+                const current = select.value;
+                select.innerHTML = '<option value="">名前を選択</option>' + members.map(m => `<option value="${m}">${m}</option>`).join('');
+                select.value = current;
+            });
+        });
+
+        rootRef.on('value', snapshot => {
+            const data = snapshot.val() || {};
+            playerSlots.forEach(targetSlot => {
+                const pData = data[targetSlot] || {};
+                document.getElementById(`name-${targetSlot}`).value = pData.name || "";
+                document.getElementById(`check-${targetSlot}`).checked = !!pData.isPartner;
+                const lifeInput = document.getElementById(`life-${targetSlot}`);
+                if (document.activeElement !== lifeInput) lifeInput.value = pData.life ?? 40;
+
+                const pVal = pData.poison ?? 0;
+                const pEl = document.getElementById(`poison-${targetSlot}`);
+                pEl.innerText = pVal;
+                pEl.style.color = getPoisonColor(pVal);
+                pEl.style.textShadow = pVal >= 10 ? "0 0 10px #ff00ff" : "none";
+
+                const cmdArea = document.getElementById(`cmd-area-${targetSlot}`);
+                cmdArea.innerHTML = '';
+                playerSlots.forEach(fromSlot => {
+                    const fromName = data[fromSlot]?.name || fromSlot;
+                    const fromIsPartner = !!data[fromSlot]?.isPartner;
+                    
+                    // 共闘なら2列、通常なら1列にする
+                    let rowHtml = `<div class="cmd-row" style="grid-template-columns: ${fromIsPartner ? '1fr 1fr' : '1fr'};">`;
+                    
+                    const val1 = pData.cmd?.[fromSlot]?.v1 ?? 0;
+                    rowHtml += `
+                        <div class="cmd-box">
+                            <span class="cmd-label">${fromName}${fromIsPartner ? '(A)' : ''}</span>
+                            <span class="cmd-val ${val1 >= 21 ? 'danger' : ''}">${val1}</span>
+                            <div class="btn-group" style="justify-content: center;">
+                                <button class="minus btn-cmd" onclick="changeValue('${targetSlot}/cmd/${fromSlot}/v1', -1)">-</button>
+                                <button class="plus btn-cmd" onclick="changeValue('${targetSlot}/cmd/${fromSlot}/v1', 1)">+</button>
+                            </div>
+                        </div>`;
+                    
+                    if(fromIsPartner) {
+                        const val2 = pData.cmd?.[fromSlot]?.v2 ?? 0;
+                        rowHtml += `
+                            <div class="cmd-box">
+                                <span class="cmd-label">${fromName}(B)</span>
+                                <span class="cmd-val ${val2 >= 21 ? 'danger' : ''}">${val2}</span>
+                                <div class="btn-group" style="justify-content: center;">
+                                    <button class="minus btn-cmd" onclick="changeValue('${targetSlot}/cmd/${fromSlot}/v2', -1)">-</button>
+                                    <button class="plus btn-cmd" onclick="changeValue('${targetSlot}/cmd/${fromSlot}/v2', 1)">+</button>
+                                </div>
+                            </div>`;
+                    }
+                    
+                    rowHtml += `</div>`;
+                    cmdArea.insertAdjacentHTML('beforeend', rowHtml);
+                });
+            });
+        });
+
+        window.changeValue = (path, delta) => {
+            rootRef.child(path).transaction(c => (c ?? (path.endsWith('life') ? 40 : 0)) + delta);
+        };
+
+        window.directInput = (path, value) => {
+            rootRef.child(path).set(value);
+        };
+    </script>
+</body>
+</html>
