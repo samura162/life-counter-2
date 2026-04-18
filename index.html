@@ -150,7 +150,7 @@
                             <div id="side-main-${slot}"></div>
                             <div class="side-dice-wrapper">
                                 <div class="side-dice-input-row">
-                                    <input type="text" id="dice-in-${slot}" class="dice-input" placeholder="1d20">
+                                    <input type="text" id="dice-in-${slot}" class="dice-input" value="1d20" placeholder="1d20">
                                     <button class="dice-btn" onclick="triggerDice('${slot}')">振</button>
                                 </div>
                                 <div class="dice-res-row">
@@ -210,7 +210,6 @@
                     directInput(`${slot}/diceResult`, final); 
                 }
             }, 80);
-            input.value = "";
             input.blur();
         };
 
