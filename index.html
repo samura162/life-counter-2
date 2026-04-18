@@ -24,17 +24,18 @@
             height: 96vh; width: 100vw; gap: 2px; box-sizing: border-box; 
         }
         
-        #slot-P1 { grid-area: 1 / 1 / 2 / 2; } 
-        #slot-P2 { grid-area: 1 / 2 / 2 / 3; } 
-        #slot-P3 { grid-area: 2 / 2 / 3 / 3; } 
-        #slot-P4 { grid-area: 2 / 1 / 3 / 2; } 
+        /* メイングリッド（時計回り） */
+        #slot-P1 { grid-area: 1 / 1 / 2 / 2; } /* 左上 */
+        #slot-P2 { grid-area: 1 / 2 / 2 / 3; } /* 右上 */
+        #slot-P3 { grid-area: 2 / 2 / 3 / 3; } /* 右下 */
+        #slot-P4 { grid-area: 2 / 1 / 3 / 2; } /* 左下 */
 
         .player-box { 
             background: #222; display: flex; flex-direction: column; 
             justify-content: space-around; padding: 2px; border: 1px solid #333; overflow: hidden;
             transition: background 0.2s;
         }
-        .player-box.shuffling { background: #333; }
+        .player-box.shuffling { background: #444; }
 
         .header-area { 
             display: flex; align-items: center; height: 10%; padding: 0 2px; gap: 4px; width: 100%; box-sizing: border-box;
@@ -63,7 +64,13 @@
         .side-val { font-weight: bold; font-size: 0.8rem; min-width: 12px; text-align: center; transition: color 0.3s; }
         .btn-side { width: 16px; height: 16px; background: #333; border: none; color: #fff; border-radius: 2px; cursor: pointer; font-size: 0.6rem; }
 
+        /* 統率者ダメージエリア（時計回り） */
         .commander-area { height: 45%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; padding: 2px; }
+        .cmd-P1 { grid-area: 1 / 1 / 2 / 2; } /* 左上 */
+        .cmd-P2 { grid-area: 1 / 2 / 2 / 3; } /* 右上 */
+        .cmd-P3 { grid-area: 2 / 2 / 3 / 3; } /* 右下 */
+        .cmd-P4 { grid-area: 2 / 1 / 3 / 2; } /* 左下 */
+
         .cmd-box { background: #1a1a1a; padding: 2px; border-radius: 2px; font-size: 0.5rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid transparent; }
         .cmd-box.is-self { opacity: 0.4; border: 1px dashed #333; }
         .cmd-header { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #333; padding-bottom: 1px; margin-bottom: 1px; }
@@ -82,7 +89,7 @@
     <div class="app-header">
         <span style="font-size:0.8rem; font-weight:bold; color:#777;">Gemini MTG EDH Counter</span>
         <div class="header-btns">
-            <button class="order-btn" onclick="shuffleNames()">順番を入れ替え</button>
+            <button class="order-btn" onclick="shuffleNames()">席順シャッフル</button>
             <button class="reset-btn" onclick="resetGame()">リセット</button>
         </div>
     </div>
@@ -181,9 +188,8 @@
                 return;
             }
 
-            // シャッフルアニメーション
             let count = 0;
-            const maxCount = 15;
+            const maxCount = 20;
             playerSlots.forEach(s => document.getElementById(`slot-${s}`).classList.add('shuffling'));
 
             const interval = setInterval(() => {
@@ -193,21 +199,19 @@
                 });
                 if (++count >= maxCount) {
                     clearInterval(interval);
-                    // 最終的な並び替え（Fisher-Yatesシャッフル）
                     const shuffled = [...currentNames];
                     for (let i = shuffled.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                     }
                     
-                    // Firebaseに反映
                     playerSlots.forEach((slot, i) => {
                         const newName = shuffled[i] || "";
                         directInput(`${slot}/name`, newName);
                         document.getElementById(`slot-${slot}`).classList.remove('shuffling');
                     });
                 }
-            }, 100);
+            }, 80);
         };
 
         memberRef.on('value', s => {
@@ -254,7 +258,7 @@
                     const isSelf = (from === target);
                     
                     let boxHtml = `<div class="cmd-box cmd-${from} ${isSelf ? 'is-self' : ''}">
-                        <div class="cmd-header"><span class="cmd-order">${fromIdx+1}</span><span class="cmd-name-label">${d[from]?.name||from}統受打</span></div>
+                        <div class="cmd-header"><span class="cmd-order">${fromIdx+1}</span><span class="cmd-name-label">${d[from]?.name||from}</span></div>
                         <div class="cmd-body">
                             <div class="cmd-unit">${fromIsP?'<span class="cmd-side-label">A</span>':''}<div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',-1)">-</button><span class="cmd-val ${v1>=21?'fatal':''}" style="color:${getDynamicColor(v1, 'cmd')}">${v1}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',1)">+</button></div></div>
                             ${fromIsP?`<div class="cmd-unit"><span class="cmd-side-label">B</span><div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',-1)">-</button><span class="cmd-val ${v2>=21?'fatal':''}" style="color:${getDynamicColor(v2, 'cmd')}">${v2}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',1)">+</button></div></div>`:''}
