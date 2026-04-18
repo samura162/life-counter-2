@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini MTG EDH Counter</title>
-    <link rel="icon" type="image/png" href="favicon.png">
     <style>
         html, body { 
             margin: 0; padding: 0; min-height: 100vh; width: 100vw; 
@@ -33,7 +32,9 @@
         .player-box { 
             background: #222; display: flex; flex-direction: column; 
             justify-content: space-around; padding: 2px; border: 1px solid #333; overflow: hidden;
+            transition: background 0.2s;
         }
+        .player-box.shuffling { background: #333; }
 
         .header-area { 
             display: flex; align-items: center; height: 10%; padding: 0 2px; gap: 4px; width: 100%; box-sizing: border-box;
@@ -62,20 +63,7 @@
         .side-val { font-weight: bold; font-size: 0.8rem; min-width: 12px; text-align: center; transition: color 0.3s; }
         .btn-side { width: 16px; height: 16px; background: #333; border: none; color: #fff; border-radius: 2px; cursor: pointer; font-size: 0.6rem; }
 
-        .side-dice-wrapper { background: #111; border: 1px solid #333; border-radius: 4px; padding: 2px; display: flex; flex-direction: column; gap: 2px; margin-top: 1px; }
-        .side-dice-input-row { display: flex; gap: 1px; align-items: center; justify-content: space-between; }
-        .dice-input { width: 55%; background: transparent; border: none; color: #aaa; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #444; outline: none; }
-        .dice-btn { background: #333; color: #fff; border: none; font-size: 0.5rem; padding: 2px 4px; border-radius: 2px; cursor: pointer; }
-        .dice-res-row { display: flex; justify-content: space-around; align-items: center; height: 12px; }
-        .dice-format { font-size: 0.35rem; color: #555; }
-        .dice-result { color: #ffeb3b; font-weight: bold; font-size: 0.75rem; min-width: 15px; }
-
         .commander-area { height: 45%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; padding: 2px; }
-        .cmd-P1 { grid-area: 1 / 1 / 2 / 2; } 
-        .cmd-P2 { grid-area: 1 / 2 / 2 / 3; } 
-        .cmd-P3 { grid-area: 2 / 2 / 3 / 3; } 
-        .cmd-P4 { grid-area: 2 / 1 / 3 / 2; } 
-
         .cmd-box { background: #1a1a1a; padding: 2px; border-radius: 2px; font-size: 0.5rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid transparent; }
         .cmd-box.is-self { opacity: 0.4; border: 1px dashed #333; }
         .cmd-header { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #333; padding-bottom: 1px; margin-bottom: 1px; }
@@ -86,7 +74,6 @@
         .cmd-side-label { color: #444; font-size: 0.4rem; line-height: 1; }
         .cmd-val-wrap { display: flex; align-items: center; gap: 1px; }
         .cmd-val { font-size: 0.8rem; font-weight: bold; min-width: 12px; text-align: center; transition: color 0.3s; }
-        .cmd-val.fatal { text-decoration: underline; text-shadow: 0 0 5px currentColor; }
         .btn-cmd { width: 14px; height: 14px; font-size: 0.6rem; background: #333; color: #fff; border: none; border-radius: 2px; cursor: pointer; }
     </style>
 </head>
@@ -95,7 +82,7 @@
     <div class="app-header">
         <span style="font-size:0.8rem; font-weight:bold; color:#777;">Gemini MTG EDH Counter</span>
         <div class="header-btns">
-            <button class="order-btn" onclick="rollAllOrder()">順番決め</button>
+            <button class="order-btn" onclick="shuffleNames()">順番を入れ替え</button>
             <button class="reset-btn" onclick="resetGame()">リセット</button>
         </div>
     </div>
@@ -153,19 +140,8 @@
                         </div>
                         <div class="sidebar-counters">
                             <div id="side-main-${slot}"></div>
-                            <div class="side-dice-wrapper">
-                                <div class="side-dice-input-row">
-                                    <input type="text" id="dice-in-${slot}" class="dice-input" value="1d20" placeholder="1d20">
-                                    <button class="dice-btn" onclick="triggerDice('${slot}')">振</button>
-                                </div>
-                                <div class="dice-res-row">
-                                    <div id="dice-fmt-${slot}" class="dice-format"></div>
-                                    <div id="dice-res-${slot}" class="dice-result">--</div>
-                                </div>
-                            </div>
                         </div>
                     </div>
-
                     <div class="commander-area" id="cmd-area-${slot}"></div>
                 </div>`;
             grid.insertAdjacentHTML('beforeend', html);
@@ -192,37 +168,46 @@
         }
 
         window.resetGame = () => {
-            if (!confirm("ダイス以外の全ての数値を初期化しますか？")) return;
+            if (!confirm("全ての数値を初期化しますか？")) return;
             playerSlots.forEach(slot => {
                 rootRef.child(slot).update({ life: 40, poison: 0, rad: 0, tax1: 0, tax2: 0, cmd: null });
             });
         };
 
-        window.rollAllOrder = () => {
-            playerSlots.forEach(slot => {
-                document.getElementById(`dice-in-${slot}`).value = "1d100";
-                triggerDice(slot);
-            });
-        };
+        window.shuffleNames = () => {
+            const currentNames = playerSlots.map(slot => document.getElementById(`name-${slot}`).value).filter(n => n !== "");
+            if (currentNames.length < 2) {
+                alert("名前を2人以上選択してください");
+                return;
+            }
 
-        window.triggerDice = (slot) => {
-            const input = document.getElementById(`dice-in-${slot}`);
-            const val = input.value.toLowerCase();
-            const match = val.match(/^(\d+)d(\d+)$/);
-            if (!match) return;
-            
-            directInput(`${slot}/diceFormat`, val);
-            let r = 0;
-            const itv = setInterval(() => {
-                const tmp = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
-                directInput(`${slot}/diceResult`, tmp);
-                if (++r > 8) { 
-                    clearInterval(itv); 
-                    const final = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
-                    directInput(`${slot}/diceResult`, final); 
+            // シャッフルアニメーション
+            let count = 0;
+            const maxCount = 15;
+            playerSlots.forEach(s => document.getElementById(`slot-${s}`).classList.add('shuffling'));
+
+            const interval = setInterval(() => {
+                playerSlots.forEach(slot => {
+                    const sel = document.getElementById(`name-${slot}`);
+                    sel.value = currentNames[Math.floor(Math.random() * currentNames.length)];
+                });
+                if (++count >= maxCount) {
+                    clearInterval(interval);
+                    // 最終的な並び替え（Fisher-Yatesシャッフル）
+                    const shuffled = [...currentNames];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    
+                    // Firebaseに反映
+                    playerSlots.forEach((slot, i) => {
+                        const newName = shuffled[i] || "";
+                        directInput(`${slot}/name`, newName);
+                        document.getElementById(`slot-${slot}`).classList.remove('shuffling');
+                    });
                 }
-            }, 80);
-            input.blur();
+            }, 100);
         };
 
         memberRef.on('value', s => {
@@ -242,8 +227,6 @@
                 const nameSel = document.getElementById(`name-${target}`);
                 if (document.activeElement !== nameSel) nameSel.value = p.name || "";
                 document.getElementById(`check-${target}`).checked = !!p.isPartner;
-                document.getElementById(`dice-fmt-${target}`).innerText = p.diceFormat || "";
-                document.getElementById(`dice-res-${target}`).innerText = p.diceResult || "--";
                 
                 const lifeIn = document.getElementById(`life-${target}`);
                 if (document.activeElement !== lifeIn) {
@@ -284,7 +267,6 @@
         window.changeValue = (path, delta) => {
             rootRef.child(path).transaction(c => {
                 if (c === null) {
-                    // パスが 'life' を含む場合は初期値40、それ以外は0
                     return (path.indexOf('life') !== -1 ? 40 : 0) + delta;
                 }
                 return c + delta;
