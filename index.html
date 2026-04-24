@@ -303,4 +303,91 @@
             directInput(`${slot}/diceFormat`, val);
             let r = 0;
             const itv = setInterval(() => {
-                const tmp = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,
+                const tmp = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
+                directInput(`${slot}/diceResult`, tmp);
+                if (++r > 8) { 
+                    clearInterval(itv); 
+                    const final = Array.from({length:match[1]},()=>Math.floor(Math.random()*match[2])+1).reduce((a,b)=>a+b);
+                    directInput(`${slot}/diceResult`, final); 
+                }
+            }, 80);
+            input.blur();
+        };
+
+        memberRef.on('value', s => {
+            const m = s.val() || [];
+            playerSlots.forEach(slot => {
+                const sel = document.getElementById(`name-${slot}`);
+                const cur = sel.value;
+                sel.innerHTML = '<option value="">名前選択</option>' + m.map(v => `<option value="${v}">${v}</option>`).join('');
+                if(cur) sel.value = cur;
+            });
+        });
+
+        rootRef.on('value', s => {
+            const d = s.val() || {};
+
+            // 昼夜の状態更新
+            const dnState = d.dayNight || "none";
+            const dnSelect = document.getElementById('day-night-ctrl');
+            if (document.activeElement !== dnSelect) {
+                dnSelect.value = dnState;
+            }
+            document.body.className = `state-${dnState}`;
+
+            playerSlots.forEach((target, targetIdx) => {
+                const p = d[target] || {};
+                const nameSel = document.getElementById(`name-${target}`);
+                if (document.activeElement !== nameSel) nameSel.value = p.name || "";
+                document.getElementById(`check-${target}`).checked = !!p.isPartner;
+                document.getElementById(`dice-fmt-${target}`).innerText = p.diceFormat || "";
+                document.getElementById(`dice-res-${target}`).innerText = p.diceResult || "--";
+                
+                const lifeIn = document.getElementById(`life-${target}`);
+                if (document.activeElement !== lifeIn) {
+                    const lifeVal = p.life ?? 40;
+                    lifeIn.value = lifeVal;
+                    lifeIn.style.color = getDynamicColor(lifeVal, 'life');
+                    if (lifeVal >= 100) lifeIn.classList.add('small-font');
+                    else lifeIn.classList.remove('small-font');
+                }
+                
+                const sideMain = document.getElementById(`side-main-${target}`);
+                const poi = p.poison ?? 0;
+                const rad = p.rad ?? 0;
+                let sideHtml = `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
+                if(!!p.isPartner) sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax2',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax2??0}</span><button class="btn-side" onclick="changeValue('${target}/tax2',1)">+</button></div>`;
+                sideHtml += `<div class="side-item"><span class="side-label" style="color:#adff2f">毒</span><button class="btn-side" onclick="changeValue('${target}/poison',-1)">-</button><span class="side-val" style="color:${getDynamicColor(poi, 'poison')}">${poi}</span><button class="btn-side" onclick="changeValue('${target}/poison',1)">+</button></div><div class="side-item"><span class="side-label" style="color:#ffeb3b">RAD</span><button class="btn-side" onclick="changeValue('${target}/rad',-1)">-</button><span class="side-val" style="color:${rad>0?'#ffeb3b':'#888'}">${rad}</span><button class="btn-side" onclick="changeValue('${target}/rad',1)">+</button></div>`;
+                sideMain.innerHTML = sideHtml;
+
+                const cmdArea = document.getElementById(`cmd-area-${target}`);
+                cmdArea.innerHTML = '';
+                playerSlots.forEach((from, fromIdx) => {
+                    const fromIsP = !!d[from]?.isPartner;
+                    const v1 = p.cmd?.[from]?.v1 ?? 0;
+                    const v2 = p.cmd?.[from]?.v2 ?? 0;
+                    const isSelf = (from === target);
+                    
+                    let boxHtml = `<div class="cmd-box cmd-${from} ${isSelf ? 'is-self' : ''}">
+                        <div class="cmd-header"><span class="cmd-order">${fromIdx+1}</span><span class="cmd-name-label">${d[from]?.name||from}統受打</span></div>
+                        <div class="cmd-body">
+                            <div class="cmd-unit">${fromIsP?'<span class="cmd-side-label">A</span>':''}<div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',-1)">-</button><span class="cmd-val ${v1>=21?'fatal':''}" style="color:${getDynamicColor(v1, 'cmd')}">${v1}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',1)">+</button></div></div>
+                            ${fromIsP?`<div class="cmd-unit"><span class="cmd-side-label">B</span><div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',-1)">-</button><span class="cmd-val ${v2>=21?'fatal':''}" style="color:${getDynamicColor(v2, 'cmd')}">${v2}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',1)">+</button></div></div>`:''}
+                        </div></div>`;
+                    cmdArea.insertAdjacentHTML('beforeend', boxHtml);
+                });
+            });
+        });
+
+        window.changeValue = (path, delta) => {
+            rootRef.child(path).transaction(c => {
+                if (c === null) {
+                    return (path.indexOf('life') !== -1 ? 40 : 0) + delta;
+                }
+                return c + delta;
+            });
+        };
+        window.directInput = (path, value) => rootRef.child(path).set(value);
+    </script>
+</body>
+</html>
