@@ -175,14 +175,32 @@
                     clearInterval(interval);
                     const shuffled = [...currentNames].sort(() => Math.random() - 0.5);
                     const updates = {};
-                    playerSlots.forEach((slot, i) => {
-                        updates[`${slot}/name`] = shuffled[i] || "";
-                        document.getElementById(`slot-${slot}`).classList.remove('shuffling');
-                    });
-                    rootRef.update(updates); 
-                }
-            }, 80);
-        };
+            playerSlots.forEach((slot, i) => {
+                const finalName = shuffled[i] || "";
+                updates[`${slot}/name`] = finalName;
+                const sel = document.getElementById(`name-${slot}`);
+                if (sel) sel.value = finalName;
+                    document.getElementById(`slot-${slot}`).classList.remove('shuffling');
+            });
+            rootRef.update(updates).then(() => {
+                const retryTimes = [2000, 4000]; 
+                retryTimes.forEach((delay, index) => {
+                    setTimeout(() => {
+                        rootRef.once('value').then(snap => {
+                            const data = snap.val() || {};
+                            playerSlots.forEach(slot => {
+                                const nameSel = document.getElementById(`name-${slot}`);
+                                if (nameSel && document.activeElement !== nameSel) {
+                                    nameSel.value = data[slot]?.name || "";
+                                }
+                            });
+                        });
+                    }, delay);
+                });
+            });
+        }
+    }, 80);
+};
         window.triggerDice = (slot) => {
             const input = document.getElementById(`dice-in-${slot}`);
             const match = input.value.toLowerCase().match(/^(\d+)d(\d+)$/);
