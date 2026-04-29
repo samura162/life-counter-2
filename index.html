@@ -3,149 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gemini MTG EDH Counter</title>
+    <title>Samura's MTG Commander Life Counter</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <style>
         * { box-sizing: border-box; }
-        html, body { 
-            margin: 0; padding: 0; height: 100%; width: 100%; 
-            background: #111; color: #fff; font-family: sans-serif; 
-            overflow: hidden; transition: background 0.5s ease;
-        }
-        body.state-day { background: #4a3a05; }
-        body.state-night { background: #1a1b3a; }
-        body.state-none { background: #111; }
-
-        .app-header {
-            height: 4vh; display: flex; justify-content: space-between; 
-            align-items: center; padding: 0 10px; background: rgba(0, 0, 0, 0.8);
-        }
-        .header-btns { display: flex; gap: 5px; align-items: center; }
-        .day-night-select {
-            background: #333; color: #fff; border: 1px solid #444; 
-            border-radius: 4px; font-size: 0.7rem; padding: 2px; outline: none;
-        }
-        .reset-btn, .order-btn {
-            border: none; border-radius: 4px; padding: 2px 8px; 
-            font-size: 0.7rem; cursor: pointer; color: #fff;
-        }
-        .reset-btn { background: #444; }
-        .order-btn { background: #2e7d32; }
-
-        .grid { 
-            display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; 
-            height: 96vh; width: 100%; gap: 2px; padding: 2px;
-        }
-        /* スロット配置: 1(左上) 2(右上) 3(右下) 4(左下) の時計回り */
-        #slot-P1 { grid-area: 1 / 1 / 2 / 2; }
-        #slot-P2 { grid-area: 1 / 2 / 2 / 3; }
-        #slot-P3 { grid-area: 2 / 2 / 3 / 3; }
-        #slot-P4 { grid-area: 2 / 1 / 3 / 2; }
-
-        .player-box { 
-            background: rgba(34, 34, 34, 0.7); display: flex; flex-direction: column; 
-            justify-content: space-around; padding: 2px; border: 1px solid #333; 
-            overflow: hidden; transition: background 0.2s;
-        }
-        .player-box.shuffling { background: #444; }
-        .header-area { display: flex; align-items: center; height: 10%; padding: 0 2px; gap: 4px; width: 100%; }
-        .order-num { font-size: 1rem; font-weight: bold; color: #666; flex-shrink: 0; }
-        .partner-wrapper { display: flex; align-items: center; gap: 1px; font-size: 0.6rem; color: #888; white-space: nowrap; flex-shrink: 0; }
-        .name-select { background: transparent; color: #ddd; border: none; font-size: 0.85rem; font-weight: bold; outline: none; flex-grow: 1; min-width: 0; }
-        .main-display-wrapper { height: 45%; display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
-        .life-center-unit { display: flex; flex-direction: column; align-items: center; width: 62%; height: 100%; justify-content: space-around; }
-        .life-wrapper { width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; height: 55%; }
-        .life { font-size: 10vh; font-weight: bold; border: none; background: transparent; width: 100%; text-align: center; outline: none; padding: 0; transition: color 0.3s; }
-        .life.small-font { font-size: 7vh; }
-        .life-btn-group { display: flex; justify-content: center; gap: 10px; width: 100%; height: 28%; }
-        .btn-life { flex: 1; max-width: 80px; height: 100%; font-size: 1.3rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
-        .btn-minus { background: #d32f2f; color: #fff; }
-        .btn-plus { background: #388e3c; color: #fff; }
-        .num-select { background: #333; color: #fff; border: 1px solid #444; font-size: 0.7rem; width: 90%; border-radius: 4px; height: 15%; }
-        .sidebar-counters { display: flex; flex-direction: column; gap: 2px; width: 36%; height: 100%; justify-content: center; }
-        .side-item { background: rgba(26, 26, 26, 0.8); border: 1px solid #333; border-radius: 4px; padding: 1px 2px; display: flex; align-items: center; justify-content: space-between; }
-        .side-label { font-size: 0.4rem; white-space: nowrap; width: 22px; font-weight: bold; }
-        .side-val { font-weight: bold; font-size: 0.8rem; min-width: 12px; text-align: center; transition: color 0.3s; }
-        .btn-side { width: 16px; height: 16px; background: #333; border: none; color: #fff; border-radius: 2px; cursor: pointer; font-size: 0.6rem; }
-        .side-dice-wrapper { background: rgba(17, 17, 17, 0.8); border: 1px solid #333; border-radius: 4px; padding: 2px; display: flex; flex-direction: column; gap: 2px; margin-top: 1px; }
-        .side-dice-input-row { display: flex; gap: 1px; align-items: center; justify-content: space-between; }
-        .dice-input { width: 55%; background: transparent; border: none; color: #aaa; font-size: 0.6rem; text-align: center; border-bottom: 1px solid #444; outline: none; }
-        .dice-btn { background: #333; color: #fff; border: none; font-size: 0.5rem; padding: 2px 4px; border-radius: 2px; cursor: pointer; }
-        .dice-res-row { display: flex; justify-content: space-around; align-items: center; height: 12px; }
-        .dice-format { font-size: 0.35rem; color: #555; }
-        .dice-result { color: #ffeb3b; font-weight: bold; font-size: 0.75rem; min-width: 15px; }
-        
-        .commander-area { height: 45%; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; padding: 2px; }
-        /* 統受打エリア内の時計回り配置設定 */
-        .cmd-pos-0 { grid-area: 1 / 1 / 2 / 2; } /* P1から受ける */
-        .cmd-pos-1 { grid-area: 1 / 2 / 2 / 3; } /* P2から受ける */
-        .cmd-pos-2 { grid-area: 2 / 2 / 3 / 3; } /* P3から受ける */
-        .cmd-pos-3 { grid-area: 2 / 1 / 3 / 2; } /* P4から受ける */
-
-        .cmd-box { background: rgba(26, 26, 26, 0.8); padding: 2px; border-radius: 2px; font-size: 0.5rem; display: flex; flex-direction: column; overflow: hidden; border: 1px solid transparent; }
-        .cmd-box.is-self { opacity: 0.4; border: 1px dashed #333; }
-        .cmd-header { display: flex; align-items: center; gap: 2px; border-bottom: 1px solid #333; padding-bottom: 1px; margin-bottom: 1px; }
-        .cmd-order { color: #555; font-weight: bold; }
-        .cmd-name-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; color: #aaa; font-size: 0.4rem; }
-        .cmd-body { display: flex; justify-content: space-around; flex-grow: 1; align-items: center; }
-        .cmd-unit { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 48%; }
-        .cmd-side-label { color: #444; font-size: 0.4rem; line-height: 1; }
-        .cmd-val-wrap { display: flex; align-items: center; gap: 1px; }
-        .cmd-val { font-size: 0.8rem; font-weight: bold; min-width: 12px; text-align: center; transition: color 0.3s; }
-        .btn-cmd { width: 14px; height: 14px; font-size: 0.6rem; background: #333; color: #fff; border: none; border-radius: 2px; cursor: pointer; }
+        html, body { margin: 0; padding: 0; height: 100vh; width: 100vw; color: #fff; font-family: sans-serif; overflow: hidden; }
+        body.state-none { background: #121212; color: #fff; }
+        body.state-none .app-header { background: #121212; }
+        body.state-none .player-box { background: #1f1f1f; border-color: #2a2a2a; }
+        body.state-day { background: #4a3a05; color: #fff; }
+        body.state-day .app-header { background: #4a3a05; }
+        body.state-day .player-box { background: rgba(0, 0, 0, 0.3); border-color: #5a4a15; }
+        body.state-night { background: #1a1b3a; color: #fff; }
+        body.state-night .app-header { background: #1a1b3a; }
+        body.state-night .player-box { background: rgba(0, 0, 0, 0.4); border-color: #2a2b4a; }
+        .grid { display: grid; grid-template-columns: 50% 50%; grid-template-rows: calc(50% - 1vh) calc(50% - 1vh); height: 96vh; width: 100%; gap: 1px; padding: 1px; }
+        .player-box { background: #111; border: 1px solid #333;display: flex; flex-direction: column; padding: 2px; }
+        #slot-P1 { grid-area: 1 / 1 / 2 / 2; } 
+        #slot-P2 { grid-area: 1 / 2 / 2 / 3; } 
+        #slot-P3 { grid-area: 2 / 2 / 3 / 3; } 
+        #slot-P4 { grid-area: 2 / 1 / 3 / 2; } 
+        .header-area { height: 4vh; display: flex; align-items: center; gap: 1px; flex-shrink: 0; white-space: nowrap; }
+        .name-select { background: #222; color: #fff; border: none; font-size: 4vmin; width: 35vw; height: 5vh; text-align-last: center; }
+        .partner-wrapper label { font-size: 3vmin; vertical-align: 1.5vh; }
+        .main-display-wrapper { height: 55%; display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
+        .life-center-unit { flex: 1.5; display: flex; flex-direction: column; align-items: center; }
+        .life { font-size: 15vmin; font-weight: bold; color: #4caf50; border: none; background: transparent; text-align: center; width: 100%; padding: 0; height: 14vmin; }
+        .life-btn-group { display: flex; gap: 2px; }
+        .btn-life { width: 8vw; height: 5vh; font-size: 4vmin; border: none; cursor: pointer; color: #fff; border-radius: 3px; }
+        .num-select { font-size: 3vmin; text-align-last: center;  margin-top: 1vh; }
+        .sidebar-counters { width: 25vw; display: flex; flex-direction: column; gap: 1px; }
+        .side-item { background: #1a1a1a; padding: 1px 1px; display: flex; justify-content: space-between; font-size: 2.5vmin; border-radius: 2px; align-items: center }
+        .side-label { font-size: 2.5vmin; }
+        .side-val { margin-left: 1vw; margin-right: 1vw; }
+        .btn-side, .btn-cmd { width: 3vw; height: 3vh; font-size: 4vmin; display: flex; align-items: center; }
+        .side-dice-wrapper { background: #1a1a1a; height: 8vh; display: grid; grid-template-rows: 3.7vh 3.5vh; }
+        .side-dice-input-row { flex-wrap: nowrap; display: flex;  justify-content: space-around; align-items: center; width: 100%; align-self: start; }
+        .dice-input { width: 10vw; height: 3vh; font-size: 2.5vmin; }
+        .dice-btn { font-size: 2.5vmin ; padding: 1px; background: #ffc107; color: #000; }
+        .dice-res-row {  flex-wrap: nowrap; display: flex;  justify-content: space-around; align-items: center; width: 100%; }
+        .dice-result, .dice-format { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
+        .dice-result { font-size: 4vmin ; color: #ffeb3b; font-weight: bold; }
+        .dice-format { font-size: 1.5vmin ; color: #ffffff; }
+        .commander-area { flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 0px; min-height: 0; }
+        .cmd-box { background: #1a1a1a; border: 1px solid #222; padding: 1px; display: flex; flex-direction: column; justify-content: center; }
+        .commander-area .cmd-header { font-size: 1.5vmin; color: #ffffff; text-align: center; }
+        .cmd-body { display: flex; justify-content: space-around; align-items: center; }
+        .cmd-val { font-size: 3.5vmin; font-weight: bold; color: #ff9800; }
+        .cmd-side-label { font-size: 1vmin; color: #ffffff; display: block; width: 100%; text-align: center; margin-bottom: 0px; }
+        .cmd-unit { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .cmd-val-wrap { display: flex; align-items: center; justify-content: center; width: 100%; justify-content: space-around;}
+        .app-header { height: 5vh; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; background: #000; }
+        .header-btns button, .day-night-select { padding: 1px 4px; height: 4vh; align-items: center; }
+        .btn-plus { background: #2e7d32; color: #fff; }
+        .btn-minus { background: #c62828; color: #fff; }
+        .order-btn { background: #0277bd ; color: #fff; font-size: 2.5vmin; }
+        .reset-btn { background: #c62828 ; color: #fff; font-size: 2.5vmin; }
+        .day-night-select { background: #444; color: #fff; font-size: 2.5vmin; }
     </style>
 </head>
 <body class="state-none">
-
     <div class="app-header">
-        <span style="font-size:0.8rem; font-weight:bold; color:#777;">Gemini MTG EDH Counter</span>
+        <span style="font-size:0.8rem; font-weight:bold; color:#777;">Samura's MTG Commander Life Counter</span>
         <div class="header-btns">
             <select id="day-night-ctrl" class="day-night-select" onchange="directInput('dayNight', this.value)">
-                <option value="none">昼夜:無</option>
-                <option value="day">昼</option>
-                <option value="night">夜</option>
+                <option value="none">Day/Night:None</option>
+                <option value="day">Day</option>
+                <option value="night">Night</option>
             </select>
-            <button class="order-btn" onclick="shuffleNames()">席順シャッフル</button>
-            <button class="reset-btn" onclick="resetGame()">リセット</button>
+            <button class="order-btn" onclick="shuffleNames()">Turn order shuffle</button>
+            <button class="reset-btn" onclick="resetGame()">Reset</button>
         </div>
     </div>
     <div class="grid" id="main-grid"></div>
-
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyDQl03fhI7AQH2Ip2dkPOlCBGOHfxKXtEE",
-            authDomain: "test-63aa0.firebaseapp.com",
-            databaseURL: "https://test-63aa0-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "test-63aa0",
-            storageBucket: "test-63aa0.firebasestorage.app",
-            messagingSenderId: "1065998979270",
-            appId: "1:1065998979270:web:a5d3e96dbe9062a37ac7c7"
-        };
-
+  apiKey: "AIzaSyDJn9FQ53JqkX6EizYnNyoDzWExjb2whuI",
+  authDomain: "test-391d5.firebaseapp.com",
+  databaseURL: "https://test-391d5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "test-391d5",
+  storageBucket: "test-391d5.firebasestorage.app",
+  messagingSenderId: "964531230825",
+  appId: "1:964531230825:web:1f42ce0fab6edc3ae9eaf8"
+};
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const rootRef = db.ref('mtg/edh-session-final-v20');
         const memberRef = db.ref('mtg/members');
-
         const playerSlots = ['P1', 'P2', 'P3', 'P4'];
         const grid = document.getElementById('main-grid');
-
         playerSlots.forEach((slot, index) => {
             let html = `
                 <div class="player-box" id="slot-${slot}">
                     <div class="header-area">
                         <span class="order-num">${index + 1}</span>
-                        <div class="partner-wrapper">
-                            <input type="checkbox" id="check-${slot}" class="partner-check" onchange="directInput('${slot}/isPartner', this.checked)">
-                            <label for="check-${slot}">共闘</label>
+            <select id="name-${slot}" class="name-select" onchange="if(this.value!=='') directInput('${slot}/name', this.value)">
+                <option value="">select nickname</option>
+            </select>
+            <div class="partner-wrapper">
+                <input type="checkbox" id="check-${slot}" class="partner-check" onchange="directInput('${slot}/isPartner', this.checked)">
+                <label for="check-${slot}">partner</label>
                         </div>
-                        <select id="name-${slot}" class="name-select" onchange="if(this.value!=='') directInput('${slot}/name', this.value)">
-                            <option value="">名前選択</option>
-                        </select>
-                    </div>
+                        </div>
                     <div class="main-display-wrapper">
                         <div class="life-center-unit">
                             <div class="life-wrapper"><input type="number" id="life-${slot}" class="life" value="40" onchange="directInput('${slot}/life', parseInt(this.value))"></div>
@@ -154,7 +115,7 @@
                                 <button class="btn-life btn-plus" onclick="changeValue('${slot}/life', 1)">+1</button>
                             </div>
                             <select class="num-select" onchange="if(this.value !== '') { directInput('${slot}/life', parseInt(this.value)); this.value = ''; }">
-                                <option value="">リストから</option>
+                                <option value="">from list</option>
                                 ${Array.from({length:150}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('')}
                             </select>
                         </div>
@@ -163,7 +124,7 @@
                             <div class="side-dice-wrapper">
                                 <div class="side-dice-input-row">
                                     <input type="text" id="dice-in-${slot}" class="dice-input" value="1d20" placeholder="1d20">
-                                    <button class="dice-btn" onclick="triggerDice('${slot}')">振</button>
+                                    <button class="dice-btn" onclick="triggerDice('${slot}')">dice roll</button>
                                 </div>
                                 <div class="dice-res-row">
                                     <div id="dice-fmt-${slot}" class="dice-format"></div>
@@ -176,7 +137,6 @@
                 </div>`;
             grid.insertAdjacentHTML('beforeend', html);
         });
-
         function getDynamicColor(val, type) {
             if (type === 'life') {
                 if (val <= 0) return "#f44336";
@@ -191,19 +151,19 @@
             }
             return "#888";
         }
-
         window.resetGame = () => {
-            if (!confirm("初期化しますか？")) return;
+            if (!confirm("Do you want to initialize?")) return;
             playerSlots.forEach(slot => {
                 rootRef.child(slot).update({ life: 40, poison: 0, rad: 0, tax1: 0, tax2: 0, cmd: null });
             });
             rootRef.update({ dayNight: "none" });
         };
-
         window.shuffleNames = () => {
             const currentNames = playerSlots.map(slot => document.getElementById(`name-${slot}`).value).filter(n => n !== "");
-            if (currentNames.length < 2) return alert("名前を2人以上選択してください");
+            if (currentNames.length < 2) return alert("Please select two or more nicknames.");
+
             playerSlots.forEach(s => document.getElementById(`slot-${s}`).classList.add('shuffling'));
+
             let count = 0;
             const interval = setInterval(() => {
                 playerSlots.forEach(slot => {
@@ -213,14 +173,15 @@
                 if (++count >= 15) {
                     clearInterval(interval);
                     const shuffled = [...currentNames].sort(() => Math.random() - 0.5);
+                    const updates = {};
                     playerSlots.forEach((slot, i) => {
-                        directInput(`${slot}/name`, shuffled[i] || "");
+                        updates[`${slot}/name`] = shuffled[i] || "";
                         document.getElementById(`slot-${slot}`).classList.remove('shuffling');
                     });
+                    rootRef.update(updates); 
                 }
             }, 80);
         };
-
         window.triggerDice = (slot) => {
             const input = document.getElementById(`dice-in-${slot}`);
             const match = input.value.toLowerCase().match(/^(\d+)d(\d+)$/);
@@ -234,34 +195,34 @@
             }, 80);
             input.blur();
         };
-
         memberRef.on('value', s => {
             const m = s.val() || [];
             playerSlots.forEach(slot => {
                 const sel = document.getElementById(`name-${slot}`);
-                const cur = sel.value;
-                sel.innerHTML = '<option value="">名前選択</option>' + m.map(v => `<option value="${v}">${v}</option>`).join('');
-                if(cur) sel.value = cur;
+                const currentVal = sel.value; 
+                let options = '<option value="">select nickname</option>';
+                m.forEach(v => { options += `<option value="${v}">${v}</option>`; });
+                sel.innerHTML = options;
+                if (m.includes(currentVal)) sel.value = currentVal;
             });
         });
-
         rootRef.on('value', s => {
             const d = s.val() || {};
             const dnState = d.dayNight || "none";
             const dnSelect = document.getElementById('day-night-ctrl');
             if (dnSelect && document.activeElement !== dnSelect) dnSelect.value = dnState;
             document.body.className = `state-${dnState}`;
-
             playerSlots.forEach((target, targetIdx) => {
                 const p = d[target] || {};
                 const nameSel = document.getElementById(`name-${target}`);
-                if (nameSel && document.activeElement !== nameSel) nameSel.value = p.name || "";
+                const slotBox = document.getElementById(`slot-${target}`); 
+                if (nameSel && document.activeElement !== nameSel && !slotBox.classList.contains('shuffling')) {
+                    nameSel.value = p.name || "";
+                }
                 const check = document.getElementById(`check-${target}`);
                 if (check) check.checked = !!p.isPartner;
-
                 document.getElementById(`dice-fmt-${target}`).innerText = p.diceFormat || "";
                 document.getElementById(`dice-res-${target}`).innerText = p.diceResult || "--";
-                
                 const lifeIn = document.getElementById(`life-${target}`);
                 if (lifeIn && document.activeElement !== lifeIn) {
                     const lifeVal = p.life ?? 40;
@@ -269,37 +230,57 @@
                     lifeIn.style.color = getDynamicColor(lifeVal, 'life');
                     lifeIn.classList.toggle('small-font', lifeVal >= 100);
                 }
-                
                 const poi = p.poison ?? 0;
                 const rad = p.rad ?? 0;
-                let sideHtml = `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
-                if(p.isPartner) sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">統唱数</span><button class="btn-side" onclick="changeValue('${target}/tax2',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax2??0}</span><button class="btn-side" onclick="changeValue('${target}/tax2',1)">+</button></div>`;
-                sideHtml += `<div class="side-item"><span class="side-label" style="color:#adff2f">毒</span><button class="btn-side" onclick="changeValue('${target}/poison',-1)">-</button><span class="side-val" style="color:${getDynamicColor(poi, 'poison')}">${poi}</span><button class="btn-side" onclick="changeValue('${target}/poison',1)">+</button></div><div class="side-item"><span class="side-label" style="color:#ffeb3b">RAD</span><button class="btn-side" onclick="changeValue('${target}/rad',-1)">-</button><span class="side-val" style="color:${rad>0?'#ffeb3b':'#888'}">${rad}</span><button class="btn-side" onclick="changeValue('${target}/rad',1)">+</button></div>`;
+                let sideHtml = "";
+                if (p.isPartner) {
+                    sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">CMD A Casts</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
+                    sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">CMD B Casts</span><button class="btn-side" onclick="changeValue('${target}/tax2',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax2??0}</span><button class="btn-side" onclick="changeValue('${target}/tax2',1)">+</button></div>`;
+                } else {
+                    sideHtml += `<div class="side-item"><span class="side-label" style="color:#00bcd4">CMD Casts</span><button class="btn-side" onclick="changeValue('${target}/tax1',-1)">-</button><span class="side-val" style="color:#00bcd4">${p.tax1??0}</span><button class="btn-side" onclick="changeValue('${target}/tax1',1)">+</button></div>`;
+                }
+                sideHtml += `<div class="side-item"><span class="side-label" style="color:#adff2f">Poison</span><button class="btn-side" onclick="changeValue('${target}/poison',-1)">-</button><span class="side-val" style="color:${getDynamicColor(poi, 'poison')}">${poi}</span><button class="btn-side" onclick="changeValue('${target}/poison',1)">+</button></div><div class="side-item"><span class="side-label" style="color:#ffeb3b">RAD</span><button class="btn-side" onclick="changeValue('${target}/rad',-1)">-</button><span class="side-val" style="color:${rad>0?'#ffeb3b':'#888'}">${rad}</span><button class="btn-side" onclick="changeValue('${target}/rad',1)">+</button></div>`;
                 document.getElementById(`side-main-${target}`).innerHTML = sideHtml;
-
                 const cmdArea = document.getElementById(`cmd-area-${target}`);
                 if (cmdArea) {
                     cmdArea.innerHTML = '';
-                    playerSlots.forEach((from, fromIdx) => {
+                    const clockwiseOrder = ['P1', 'P2', 'P4', 'P3'];
+                    clockwiseOrder.forEach((from) => {
                         const fromData = d[from] || {};
                         const fromIsP = !!fromData.isPartner;
                         const v1 = p.cmd?.[from]?.v1 ?? 0;
                         const v2 = p.cmd?.[from]?.v2 ?? 0;
                         const isSelf = (from === target);
-                        
-                        // ここで cmd-pos-X クラスを付与して時計回りを実現
-                        let boxHtml = `<div class="cmd-box cmd-pos-${fromIdx} ${isSelf ? 'is-self' : ''}">
-                            <div class="cmd-header"><span class="cmd-order">${fromIdx+1}</span><span class="cmd-name-label">${fromData.name||from}統受打</span></div>
+                        const displayNum = from.replace('P', '');
+                        let boxHtml = `<div class="cmd-box cmd-pos-${displayNum} ${isSelf ? 'is-self' : ''}">
+                            <div class="cmd-header">
+                                <span class="cmd-order">${displayNum}</span>
+                                <span class="cmd-name-label">${fromData.name||from} CMD Damage</span>
+                            </div>
                             <div class="cmd-body">
-                                <div class="cmd-unit">${fromIsP?'<span class="cmd-side-label">A</span>':''}<div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',-1)">-</button><span class="cmd-val" style="color:${getDynamicColor(v1, 'cmd')}">${v1}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',1)">+</button></div></div>
-                                ${fromIsP?`<div class="cmd-unit"><span class="cmd-side-label">B</span><div class="cmd-val-wrap"><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',-1)">-</button><span class="cmd-val" style="color:${getDynamicColor(v2, 'cmd')}">${v2}</span><button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',1)">+</button></div></div>`:''}
-                            </div></div>`;
+                                <div class="cmd-unit">
+                                    ${fromIsP?'<span class="cmd-side-label">A</span>':''}
+                                    <div class="cmd-val-wrap">
+                                        <button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',-1)">-</button>
+                                        <span class="cmd-val" style="color:${getDynamicColor(v1, 'cmd')}">${v1}</span>
+                                        <button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v1',1)">+</button>
+                                    </div>
+                                </div>
+                                ${fromIsP?`<div class="cmd-unit">
+                                    <span class="cmd-side-label">B</span>
+                                    <div class="cmd-val-wrap">
+                                        <button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',-1)">-</button>
+                                        <span class="cmd-val" style="color:${getDynamicColor(v2, 'cmd')}">${v2}</span>
+                                        <button class="btn-cmd" onclick="changeValue('${target}/cmd/${from}/v2',1)">+</button>
+                                    </div>
+                                </div>`:''}
+                            </div>
+                        </div>`;
                         cmdArea.insertAdjacentHTML('beforeend', boxHtml);
                     });
                 }
             });
         });
-
         window.changeValue = (path, delta) => {
             rootRef.child(path).transaction(c => {
                 if (c === null) return (path.includes('life') ? 40 : 0) + delta;
