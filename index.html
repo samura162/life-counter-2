@@ -29,19 +29,19 @@
         .partner-wrapper label { font-size: 3vmin; }
         .main-display-wrapper { height: 55%; display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
         .life-center-unit { flex: 1.5; display: flex; flex-direction: column; align-items: center; }
-        .life { font-size: 15vmin; font-weight: bold; color: #4caf50; border: none; background: transparent; text-align: center; width: 100%; padding: 0; height: 14vmin; }
+        .life { font-size: 17vmin; font-weight: bold; color: #4caf50; border: none; background: transparent; text-align: center; width: 100%; padding: 0; height: 14vmin; }
         .life-btn-group { display: flex; gap: 2px; }
-        .btn-life { width: 8vw; height: 5vh; font-size: 4vmin; border: none; cursor: pointer; color: #fff; border-radius: 3px; }
+        .btn-life { width: 8vw; height: 4vh; font-size: 4vmin; border: none; cursor: pointer; color: #fff; border-radius: 3px; }
         .num-select { font-size: 3vmin; text-align-last: center;  margin-top: 1vh; background: #1f1f1f; color: #dcdcdc; }
         .sidebar-counters { width: 25vw; display: flex; flex-direction: column; gap: 1px; }
         .side-item { background: #1a1a1a; padding: 1px 1px; display: flex; justify-content: space-between; font-size: 2.5vmin; border-radius: 2px; align-items: center }
         .side-label { font-size: 2.5vmin; }
         .side-val { margin-left: 1vw; margin-right: 1vw; }
-        .btn-side, .btn-cmd { width: 3vw; height: 3vh; font-size: 4vmin; display: flex; align-items: center; background: #444; color: #fff; border: none; }
+        .btn-side, .btn-cmd { width: 4vw; height: 3vh; font-size: 4vmin; display: flex; align-items: center; background: #444; color: #fff; border: none; }
         .side-dice-wrapper { background: #1a1a1a; height: 8vh; display: grid; grid-template-rows: 3.7vh 3.5vh; }
         .side-dice-input-row { flex-wrap: nowrap; display: flex;  justify-content: space-around; align-items: center; width: 100%; align-self: start; }
         .dice-input { width: 10vw; height: 3vh; font-size: 2.5vmin; }
-        .dice-btn { font-size: 2.5vmin ; padding: 1px; background: #ffc107; color: #000; }
+        .dice-btn { font-size: 2.5vmin ; background: #ffc107; color: #000; width: 10vw; height: 3.5vh; text-align: center; display: flex; align-items: center; justify-content: center; }
         .dice-res-row {  flex-wrap: nowrap; display: flex;  justify-content: space-around; align-items: center; width: 100%; }
         .dice-result, .dice-format { flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; }
         .dice-result { font-size: 4vmin ; color: #ffeb3b; font-weight: bold; }
@@ -163,9 +163,7 @@
         window.shuffleNames = () => {
             const currentNames = playerSlots.map(slot => document.getElementById(`name-${slot}`).value).filter(n => n !== "");
             if (currentNames.length < 2) return alert("名前を2人以上選択してください");
-
             playerSlots.forEach(s => document.getElementById(`slot-${s}`).classList.add('shuffling'));
-
             let count = 0;
             const interval = setInterval(() => {
                 playerSlots.forEach(slot => {
@@ -180,8 +178,7 @@
                 const finalName = shuffled[i] || "";
                 updates[`${slot}/name`] = finalName;
                 const sel = document.getElementById(`name-${slot}`);
-                if (sel) sel.value = finalName;
-                    document.getElementById(`slot-${slot}`).classList.remove('shuffling');
+                if (sel) sel.value = finalName; document.getElementById(`slot-${slot}`).classList.remove('shuffling');
             });
             rootRef.update(updates).then(() => {
                 const retryTimes = [2000, 4000]; 
